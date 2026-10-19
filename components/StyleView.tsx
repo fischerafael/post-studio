@@ -18,7 +18,7 @@ function RulesTab() {
 
   return (
     <>
-      <p className="lead">Regras curtas que o gerador sempre segue. Ex.: “não use letras maiúsculas”, “evite a palavra ‘jornada’”, “sem construção ‘não é X, é Y’”.</p>
+      <p className="lead">Regras curtas que o gerador sempre segue. Ex.: “não use letras maiúsculas”, “evite a palavra ‘jornada’”, “sem construção ‘não é X, é Y’”. Também vale para tamanho: “máximo de 150 palavras”, “frases de até 12 palavras”, “no máximo 5 parágrafos”.</p>
       <div className="row">
         <input
           className="input"

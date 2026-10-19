@@ -25,7 +25,7 @@ export function samplesBlock(s: State) {
 }
 
 export function rulesBlock(s: State) {
-  return s.rules.length ? `\nREGRAS DE ESTILO (obrigatórias, vale para todo texto que você escrever):\n${s.rules.map((r) => `- ${r}`).join("\n")}\n` : "";
+  return s.rules.length ? `\nREGRAS DE ESTILO (obrigatórias, valem para todo texto que você escrever e prevalecem sobre qualquer padrão de tamanho ou formato abaixo):\n${s.rules.map((r) => `- ${r}`).join("\n")}\n` : "";
 }
 
 export function suggestionsPrompt(s: State, slots: Slot[]) {
@@ -59,7 +59,7 @@ REGRAS:
 - Em cada slot, escolha um dos templates listados nele e preencha as lacunas com assuntos concretos do pilar/sub-pilar, sem inventar fatos sobre a vida do autor. Cada slot deve tratar de um assunto diferente dos demais.
 - Os templates podem estar em outro idioma (muitos estão em inglês). Traduza e adapte tudo para ${g.lang}: "hook", "post" e todos os campos de texto devem estar inteiramente em ${g.lang}, sem frases do template deixadas no idioma original.
 - "hook" é o template já preenchido, traduzido para ${g.lang} e adaptado à voz do autor.
-- "post" é o post COMPLETO, pronto para publicar, no formato do slot (texto: 120 a 250 palavras; carrossel: slide a slide; reel: roteiro com falas). Ele precisa casar com o "hook": a primeira linha do post é o próprio hook ou responde diretamente a ele, de modo que o tema fique claro já na primeira frase. Não abra com uma frase genérica sem relação com o hook. O hook não é exibido separado do post: o texto precisa funcionar sozinho.
+- "post" é o post COMPLETO, pronto para publicar, no formato do slot (carrossel: slide a slide; reel: roteiro com falas). Tamanho padrão do texto: 120 a 250 palavras, SOMENTE se as REGRAS DE ESTILO não definirem tamanho; se definirem (palavras, frases, parágrafos, caracteres, slides etc.), siga a regra e ignore o padrão. Ele precisa casar com o "hook": a primeira linha do post é o próprio hook ou responde diretamente a ele, de modo que o tema fique claro já na primeira frase. Não abra com uma frase genérica sem relação com o hook. O hook não é exibido separado do post: o texto precisa funcionar sozinho.
 ${s.cta?.trim() ? "- Um CTA fixo é anexado ao final automaticamente: não escreva CTA nem convite para ação no fim do post.\n" : ""}- Idioma de saída: ${g.lang}.
 ${g.extra ? `- Instrução extra: ${g.extra}
 ` : ""}
