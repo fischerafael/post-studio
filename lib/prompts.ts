@@ -1,0 +1,104 @@
+import { CATEGORIES } from "./templates";
+import type { Slot } from "./slots";
+import type { Pillar, State, Suggestion } from "./types";
+
+const catName = (id: string) => CATEGORIES.find((c) => c.id === id)?.name ?? id;
+
+export const SYSTEM =
+  "Você é um estrategista de conteúdo experiente. Escreve com voz humana, direta e específica, sem clichês de IA. Siga exatamente o formato de saída pedido.";
+
+function pillarLine(p: Pillar) {
+  return `- ${p.name}${p.desc ? ` (${p.desc})` : ""}${p.subs.length ? `. Sub-pilares: ${p.subs.join("; ")}` : ""}`;
+}
+
+export function audienceBlock(s: State) {
+  return s.audience.map((a) => `- ${a.name}: ${a.desc} Objetivo: ${a.goal}`).join("\n") || "(nenhum cadastrado)";
+}
+
+export function samplesBlock(s: State) {
+  return (
+    s.samples
+      .slice(0, 8)
+      .map((x, i) => `--- Sample ${i + 1}${x.format ? ` [${x.format}]` : ""}${x.note ? ` (${x.note})` : ""}\n${x.text.slice(0, 900)}`)
+      .join("\n") || "(nenhum cadastrado)"
+  );
+}
+
+export function rulesBlock(s: State) {
+  return s.rules.length ? `\nREGRAS DE ESTILO (obrigatórias, vale para todo texto que você escrever):\n${s.rules.map((r) => `- ${r}`).join("\n")}\n` : "";
+}
+
+export function suggestionsPrompt(s: State, slots: Slot[]) {
+  const g = s.settings;
+  const slotBlock = slots
+    .map((x, i) => {
+      const head = [
+        `Pilar: ${x.pillar ? pillarLine(x.pillar).slice(2) : "(livre)"}`,
+        x.sub ? `Sub-pilar (obrigatório): ${x.sub}` : "Sub-pilar: escolha um tema específico e menos óbvio do pilar",
+        `Persona: ${x.persona ? `${x.persona.name} (${x.persona.desc} Objetivo: ${x.persona.goal})` : "(livre)"}`,
+        `Formato: ${x.format}`,
+      ].join("\n");
+      const list = x.tpls.map(({ t, text }) => `${t.id} | ${catName(t.cat)} | ${text}`).join("\n");
+      return `### SLOT ${i + 1}
+${head}
+Templates (id | categoria | texto; termos entre [colchetes] são lacunas a preencher). Escolha UM:
+${list}`;
+    })
+    .join("\n\n");
+  return `Gere ${g.n} sugestões de posts distintas, uma para cada SLOT abaixo. Pilar, sub-pilar, persona e formato de cada slot já foram sorteados: respeite-os exatamente.
+
+SOBRE O AUTOR:
+${s.bio}
+
+POSTS DE REFERÊNCIA DO AUTOR (imite voz, ritmo e estrutura; não copie trechos):
+${samplesBlock(s)}
+${rulesBlock(s)}
+${slotBlock}
+
+REGRAS:
+- Em cada slot, escolha um dos templates listados nele e preencha as lacunas com assuntos concretos do pilar/sub-pilar, sem inventar fatos sobre a vida do autor. Cada slot deve tratar de um assunto diferente dos demais.
+- Os templates podem estar em outro idioma (muitos estão em inglês). Traduza e adapte tudo para ${g.lang}: "hook", "rascunho" e todos os campos de texto devem estar inteiramente em ${g.lang}, sem frases do template deixadas no idioma original.
+- "hook" é o template já preenchido, traduzido para ${g.lang} e adaptado à voz do autor.
+- "rascunho" é um começo de post de 60 a 120 palavras no formato do slot (carrossel: liste os slides; reel: roteiro curto). Ele precisa casar com o "hook": a primeira linha do rascunho é o próprio hook ou responde diretamente a ele, de modo que quem lê só o rascunho entenda de que o post trata. Não abra com uma frase genérica sem relação com o hook.
+- Idioma de saída: ${g.lang}.
+${g.extra ? `- Instrução extra: ${g.extra}
+` : ""}
+Responda SOMENTE com um array JSON de ${g.n} itens, na ordem dos slots, sem texto fora dele. Cada item:
+{"slot":1,"template_id":"...","hook":"...","angulo":"uma ou duas frases sobre o que o post defende e por quê","rascunho":"..."}`;
+}
+
+export function fullPostPrompt(s: State, r: Suggestion) {
+  return `Escreva o post completo a partir desta sugestão.
+
+AUTOR: ${s.bio}
+
+PÚBLICO:
+${audienceBlock(s)}
+
+POSTS DE REFERÊNCIA (imite voz e ritmo, sem copiar):
+${samplesBlock(s)}
+${rulesBlock(s)}
+SUGESTÃO:
+Formato: ${r.format}
+Pilar: ${r.pillar}${r.sub ? ` › ${r.sub}` : ""}
+Persona: ${r.persona}
+Gancho: ${r.hook}
+Ângulo: ${r.angle}
+Rascunho inicial: ${r.draft}
+
+O post deve abrir com o gancho (ou uma primeira linha que o retome de forma clara), para que o tema fique evidente já na primeira frase. O gancho não é exibido separado: o texto precisa funcionar sozinho.
+
+${s.cta?.trim() ? "Um CTA fixo será anexado ao final automaticamente: não escreva CTA nem convite para ação no fim do post.\n\n" : ""}Idioma: o post inteiro deve estar em ${s.settings.lang}; se o gancho ou o rascunho estiverem em outro idioma, traduza. Entregue só o texto final do post, pronto para publicar, no formato indicado (carrossel: slide a slide; reel: roteiro com falas).`;
+}
+
+export function subsPrompt(s: State, p: Pillar, n: number) {
+  return `Sugira ${n} sub-pilares de conteúdo para o pilar abaixo. Cada um deve ser um tema específico o bastante para render vários posts, com 2 a 6 palavras, em português do Brasil.
+
+Autor: ${s.bio}
+Pilar: ${p.name}${p.desc ? ` (${p.desc})` : ""}
+Público:
+${audienceBlock(s)}
+Já existentes (não repita): ${p.subs.join("; ") || "nenhum"}
+
+Responda SOMENTE com um array JSON de strings.`;
+}
