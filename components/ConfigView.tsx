@@ -103,7 +103,7 @@ export function ConfigView() {
             onChange={(e) => update((d) => void (d.cta = e.target.value))}
             aria-label="CTA padrão"
           />
-          <p className="small muted">Anexado, sem alterações, ao fim de todo post completo. Deixe vazio para não usar.</p>
+          <p className="small muted">Anexado, sem alterações, ao fim de todo post gerado. Deixe vazio para não usar.</p>
         </Prop>
       </div>
 

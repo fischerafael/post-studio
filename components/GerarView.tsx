@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CATEGORIES } from "../lib/templates";
-import { fullPostPrompt, suggestionsPrompt } from "../lib/prompts";
+import { suggestionsPrompt } from "../lib/prompts";
 import { toggle, useStore } from "../lib/store";
 import { drawSlots, rememberSubs } from "../lib/slots";
 import { useLlm } from "../lib/useLlm";
@@ -16,16 +16,12 @@ interface Raw {
   template_id?: string;
   hook?: string;
   angulo?: string;
-  rascunho?: string;
+  post?: string;
 }
 
-const norm = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-
-/** Texto copiado: post completo, ou gancho + rascunho (sem repetir o gancho), sempre terminando no CTA. */
-function copyBody(r: Suggestion, cta?: string) {
-  const draft = r.draft.trim();
-  const opensWithHook = !!r.hook && norm(draft).startsWith(norm(r.hook));
-  const body = (r.full || (opensWithHook || !draft ? draft || r.hook : `${r.hook}\n\n${draft}`)).trimEnd();
+/** Post com o CTA padrão no fim; é o que aparece na tela e o que vai para a área de transferência. */
+function postText(r: Suggestion, cta?: string) {
+  const body = (r.post ?? "").trim() || r.hook;
   const c = cta?.trim();
   return c && !body.endsWith(c) ? `${body}\n\n${c}` : body;
 }
@@ -62,7 +58,6 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
   const g = s.settings;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [busyFull, setBusyFull] = useState<number | null>(null);
   const [newFmt, setNewFmt] = useState("");
 
   const pool = templates.filter((t) => !s.tplOff.includes(t.id) && g.cats.includes(t.cat) && (!g.onlyFav || s.tplFav.includes(t.id)));
@@ -74,7 +69,7 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
     setBusy(true);
     try {
       const slots = drawSlots(s, pool.map((t: Template) => ({ t, text: textOf(t) })));
-      const out = await llm.json<Raw[] | { sugestoes?: Raw[] }>(suggestionsPrompt(s, slots), 6000);
+      const out = await llm.json<Raw[] | { sugestoes?: Raw[] }>(suggestionsPrompt(s, slots), 8000);
       const arr = Array.isArray(out) ? out : out.sugestoes ?? [];
       const byId = new Map(templates.map((t) => [t.id, t]));
       const results: Suggestion[] = arr.slice(0, g.n).map((r, i) => {
@@ -88,8 +83,7 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
           persona: x.persona?.name ?? "",
           hook: r.hook ?? "",
           angle: r.angulo ?? "",
-          draft: r.rascunho ?? "",
-          full: "",
+          post: r.post ?? "",
         };
       });
       if (!results.length) throw new Error("O modelo não devolveu sugestões. Tente de novo.");
@@ -117,18 +111,6 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
       setErr(e instanceof SyntaxError ? "A resposta veio fora do formato. Tente de novo ou use um modelo maior." : (e as Error).message);
     }
     setBusy(false);
-  }
-
-  async function writeFull(i: number) {
-    setBusyFull(i);
-    try {
-      const body = (await llm.text(fullPostPrompt(s, s.results[i]), 4096)).trimEnd();
-      const full = s.cta?.trim() ? `${body}\n\n${s.cta.trim()}` : body;
-      update((d) => void (d.results[i].full = full));
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-    setBusyFull(null);
   }
 
   return (
@@ -212,7 +194,7 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
 
       <div style={{ marginTop: 32 }}>
         {!s.results.length && !busy && (
-          <Empty title="Nada gerado ainda">As sugestões aparecem aqui, com gancho, formato, ângulo e rascunho.</Empty>
+          <Empty title="Nada gerado ainda">As sugestões aparecem aqui, com gancho, formato, ângulo e o post completo.</Empty>
         )}
         {s.results.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
@@ -235,13 +217,9 @@ export function GerarView({ goConfig }: { goConfig: () => void }) {
             </div>
             <div className="hook">{r.hook}</div>
             {r.angle && <p className="muted">{r.angle}</p>}
-            {r.draft && <div className="callout pre">{r.draft}</div>}
-            {r.full && <div className="callout pre">{r.full}</div>}
+            <div className="callout pre">{postText(r, s.cta)}</div>
             <div className="row">
-              <button className="btn" onClick={() => copyText(copyBody(r, s.cta))}>Copiar</button>
-              <button className="btn" onClick={() => writeFull(i)} disabled={busyFull !== null}>
-                {busyFull === i ? <><span className="spin" />Escrevendo…</> : "Escrever post completo"}
-              </button>
+              <button className="btn" onClick={() => copyText(postText(r, s.cta))}>Copiar</button>
               <button className="btn ghost danger" onClick={() => update((d) => void d.results.splice(i, 1))}>Descartar</button>
             </div>
           </article>

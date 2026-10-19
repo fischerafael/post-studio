@@ -32,7 +32,7 @@ function RulesTab() {
         <button className="btn pri" onClick={add}>Adicionar</button>
       </div>
       <hr />
-      {!s.rules.length && <Empty title="Nenhuma regra ainda">Cada regra vira um bullet no prompt, tanto nas sugestões quanto no post completo.</Empty>}
+      {!s.rules.length && <Empty title="Nenhuma regra ainda">Cada regra vira um bullet no prompt, em todo post gerado.</Empty>}
       <div className="cards">
         {s.rules.map((r, i) => (
           <div className="card" key={i}>

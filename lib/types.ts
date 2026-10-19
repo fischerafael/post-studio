@@ -56,8 +56,7 @@ export interface Suggestion {
   persona: string;
   hook: string;
   angle: string;
-  draft: string;
-  full: string;
+  post: string;
 }
 
 export interface ModelInfo {

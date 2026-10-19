@@ -1,6 +1,6 @@
 import { CATEGORIES } from "./templates";
 import type { Slot } from "./slots";
-import type { Pillar, State, Suggestion } from "./types";
+import type { Pillar, State } from "./types";
 
 const catName = (id: string) => CATEGORIES.find((c) => c.id === id)?.name ?? id;
 
@@ -57,38 +57,14 @@ ${slotBlock}
 
 REGRAS:
 - Em cada slot, escolha um dos templates listados nele e preencha as lacunas com assuntos concretos do pilar/sub-pilar, sem inventar fatos sobre a vida do autor. Cada slot deve tratar de um assunto diferente dos demais.
-- Os templates podem estar em outro idioma (muitos estão em inglês). Traduza e adapte tudo para ${g.lang}: "hook", "rascunho" e todos os campos de texto devem estar inteiramente em ${g.lang}, sem frases do template deixadas no idioma original.
+- Os templates podem estar em outro idioma (muitos estão em inglês). Traduza e adapte tudo para ${g.lang}: "hook", "post" e todos os campos de texto devem estar inteiramente em ${g.lang}, sem frases do template deixadas no idioma original.
 - "hook" é o template já preenchido, traduzido para ${g.lang} e adaptado à voz do autor.
-- "rascunho" é um começo de post de 60 a 120 palavras no formato do slot (carrossel: liste os slides; reel: roteiro curto). Ele precisa casar com o "hook": a primeira linha do rascunho é o próprio hook ou responde diretamente a ele, de modo que quem lê só o rascunho entenda de que o post trata. Não abra com uma frase genérica sem relação com o hook.
-- Idioma de saída: ${g.lang}.
+- "post" é o post COMPLETO, pronto para publicar, no formato do slot (texto: 120 a 250 palavras; carrossel: slide a slide; reel: roteiro com falas). Ele precisa casar com o "hook": a primeira linha do post é o próprio hook ou responde diretamente a ele, de modo que o tema fique claro já na primeira frase. Não abra com uma frase genérica sem relação com o hook. O hook não é exibido separado do post: o texto precisa funcionar sozinho.
+${s.cta?.trim() ? "- Um CTA fixo é anexado ao final automaticamente: não escreva CTA nem convite para ação no fim do post.\n" : ""}- Idioma de saída: ${g.lang}.
 ${g.extra ? `- Instrução extra: ${g.extra}
 ` : ""}
 Responda SOMENTE com um array JSON de ${g.n} itens, na ordem dos slots, sem texto fora dele. Cada item:
-{"slot":1,"template_id":"...","hook":"...","angulo":"uma ou duas frases sobre o que o post defende e por quê","rascunho":"..."}`;
-}
-
-export function fullPostPrompt(s: State, r: Suggestion) {
-  return `Escreva o post completo a partir desta sugestão.
-
-AUTOR: ${s.bio}
-
-PÚBLICO:
-${audienceBlock(s)}
-
-POSTS DE REFERÊNCIA (imite voz e ritmo, sem copiar):
-${samplesBlock(s)}
-${rulesBlock(s)}
-SUGESTÃO:
-Formato: ${r.format}
-Pilar: ${r.pillar}${r.sub ? ` › ${r.sub}` : ""}
-Persona: ${r.persona}
-Gancho: ${r.hook}
-Ângulo: ${r.angle}
-Rascunho inicial: ${r.draft}
-
-O post deve abrir com o gancho (ou uma primeira linha que o retome de forma clara), para que o tema fique evidente já na primeira frase. O gancho não é exibido separado: o texto precisa funcionar sozinho.
-
-${s.cta?.trim() ? "Um CTA fixo será anexado ao final automaticamente: não escreva CTA nem convite para ação no fim do post.\n\n" : ""}Idioma: o post inteiro deve estar em ${s.settings.lang}; se o gancho ou o rascunho estiverem em outro idioma, traduza. Entregue só o texto final do post, pronto para publicar, no formato indicado (carrossel: slide a slide; reel: roteiro com falas).`;
+{"slot":1,"template_id":"...","hook":"...","angulo":"uma ou duas frases sobre o que o post defende e por quê","post":"..."}`;
 }
 
 export function subsPrompt(s: State, p: Pillar, n: number) {
